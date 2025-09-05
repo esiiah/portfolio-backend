@@ -13,6 +13,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// 👇 Root route just to confirm backend is alive
+app.get('/', (req, res) => {
+  res.send('Backend is live 🚀');
+});
+
 // POST route for contact form
 app.post('/contact', async (req, res) => {
   const { name, email, message } = req.body;
