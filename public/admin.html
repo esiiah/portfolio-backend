@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Messages</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Contact Form Messages</h1>
+  <table id="messagesTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Message</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function loadMessages() {
+      const res = await fetch("/api/messages");
+      const messages = await res.json();
+      const tbody = document.querySelector("#messagesTable tbody");
+      tbody.innerHTML = "";
+      messages.forEach(msg => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${msg.id}</td>
+          <td>${msg.name}</td>
+          <td>${msg.email}</td>
+          <td>${msg.message}</td>
+          <td>${new Date(msg.created_at).toLocaleString()}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    loadMessages();
+  </script>
+</body>
+</html>
