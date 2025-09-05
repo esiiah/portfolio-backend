@@ -1,21 +1,20 @@
 import express from "express";
 import cors from "cors";
 import fs from "fs-extra";
+import path from "path";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const DATA_FILE = "./messages.json";
 
-// Only create the file if it does NOT exist
+// Ensure file exists
 fs.pathExists(DATA_FILE).then(exists => {
-  if (!exists) {
-    fs.writeJson(DATA_FILE, [], { spaces: 2 });
-  }
+  if (!exists) fs.writeJson(DATA_FILE, [], { spaces: 2 });
 });
 
-// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public")); // serve static files from /public
 
 // Health check
 app.get("/", (req, res) => res.send("Backend is live 🚀"));
@@ -23,9 +22,8 @@ app.get("/", (req, res) => res.send("Backend is live 🚀"));
 // Store contact form messages
 app.post("/contact", async (req, res) => {
   const { name, email, message } = req.body;
-  if (!name || !email || !message) {
+  if (!name || !email || !message)
     return res.status(400).json({ message: "All fields are required" });
-  }
 
   try {
     const messages = await fs.readJson(DATA_FILE);
@@ -45,13 +43,17 @@ app.post("/contact", async (req, res) => {
   }
 });
 
-// View all messages
-app.get("/messages", async (req, res) => {
+// Admin page to view messages
+app.get("/admin", async (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
+});
+
+// API to fetch messages for admin
+app.get("/api/messages", async (req, res) => {
   try {
     const messages = await fs.readJson(DATA_FILE);
-    res.status(200).json(messages.reverse());
+    res.json(messages.reverse());
   } catch (err) {
-    console.error("❌ File read error:", err);
     res.status(500).json({ message: "Failed to fetch messages" });
   }
 });
