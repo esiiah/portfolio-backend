@@ -27,24 +27,27 @@ app.post('/contact', async (req, res) => {
   }
 
   try {
-    // Nodemailer transporter using Gmail App Password
+    // Nodemailer transporter with Gmail App Password and timeouts
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,       // smtp.gmail.com
-      port: Number(process.env.EMAIL_PORT),// 465
-      secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
+      host: process.env.EMAIL_HOST,                  // smtp.gmail.com
+      port: Number(process.env.EMAIL_PORT),          // 587 or 465
+      secure: process.env.EMAIL_PORT == 465,         // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      connectionTimeout: 5000,  // 5 seconds
+      greetingTimeout: 5000,    // 5 seconds
     });
 
     // verify SMTP connection before sending
     await transporter.verify();
+    console.log("✅ SMTP connection verified");
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: process.env.EMAIL_FROM, // send to yourself
-      replyTo: email,              // sender's email for reply
+      replyTo: email,             // sender's email for reply
       subject: `Portfolio Contact Form: ${name}`,
       text: message,
     };
