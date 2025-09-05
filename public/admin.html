@@ -1,51 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin - Messages</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    th { background: #f2f2f2; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Portfolio Messages</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h1>Contact Form Messages</h1>
-  <table id="messagesTable">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Email</th>
-        <th>Message</th>
-        <th>Time</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<body class="bg-gray-100 text-gray-800">
+
+  <header class="bg-black text-white py-4 text-center">
+    <h1 class="text-2xl font-semibold">Portfolio Admin - Messages</h1>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4">
+    <div id="messagesContainer" class="space-y-3"></div>
+  </main>
 
   <script>
-    async function loadMessages() {
-      const res = await fetch("/api/messages");
-      const messages = await res.json();
-      const tbody = document.querySelector("#messagesTable tbody");
-      tbody.innerHTML = "";
-      messages.forEach(msg => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${msg.id}</td>
-          <td>${msg.name}</td>
-          <td>${msg.email}</td>
-          <td>${msg.message}</td>
-          <td>${new Date(msg.created_at).toLocaleString()}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+    const messagesContainer = document.getElementById('messagesContainer');
+
+    async function fetchMessages() {
+      try {
+        const response = await fetch('https://portfolio-backend-production-db1e.up.railway.app/messages');
+        if (!response.ok) throw new Error("Failed to fetch messages");
+        const messages = await response.json();
+
+        messagesContainer.innerHTML = '';
+
+        messages.forEach((msg, index) => {
+          const messageDiv = document.createElement('div');
+          messageDiv.className = `p-4 rounded shadow cursor-pointer transition-colors ${
+            msg.seen ? 'bg-black text-white' : 'bg-sky-200 text-black'
+          } flex justify-between items-start`;
+
+          messageDiv.innerHTML = `
+            <div>
+              <p><strong>${msg.name}</strong> (${msg.email})</p>
+              <p class="mt-1 whitespace-pre-wrap">${msg.message}</p>
+              <p class="text-xs mt-1 text-gray-600">${new Date(msg.timestamp).toLocaleString()}</p>
+            </div>
+            <div class="flex flex-col gap-2 ml-4">
+              <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600" data-action="seen" data-index="${index}">
+                Mark Seen
+              </button>
+              <button class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" data-action="delete" data-index="${index}">
+                Delete
+              </button>
+            </div>
+          `;
+
+          messagesContainer.appendChild(messageDiv);
+        });
+      } catch (err) {
+        console.error("Error fetching messages:", err);
+      }
     }
 
-    loadMessages();
+    // Call on load
+    fetchMessages();
+
+    // Poll every 15 seconds for updates
+    setInterval(fetchMessages, 15000);
+
+    // Event delegation for buttons
+    messagesContainer.addEventListener('click', async (e) => {
+      const button = e.target.closest('button');
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const index = button.dataset.index;
+
+      try {
+        if (action === 'seen') {
+          await fetch(`https://portfolio-backend-production-db1e.up.railway.app/messages/seen/${index}`, { method: 'PATCH' });
+        } else if (action === 'delete') {
+          if (!confirm("Are you sure you want to delete this message?")) return;
+          await fetch(`https://portfolio-backend-production-db1e.up.railway.app/messages/delete/${index}`, { method: 'DELETE' });
+        }
+        // Refresh messages after action
+        fetchMessages();
+      } catch (err) {
+        console.error("Error updating message:", err);
+      }
+    });
   </script>
+
 </body>
 </html>
