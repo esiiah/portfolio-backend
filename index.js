@@ -1,61 +1,71 @@
-import express from "express";
-import cors from "cors";
-import fs from "fs-extra";
-import path from "path";
+import fs from 'fs';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
-const DATA_FILE = "./messages.json";
-
-// Ensure file exists
-fs.pathExists(DATA_FILE).then(exists => {
-  if (!exists) fs.writeJson(DATA_FILE, [], { spaces: 2 });
-});
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // serve static files from /public
+
+const MESSAGES_FILE = './messages.json';
+
+// Helper to read/write JSON file
+function readMessages() {
+  if (!fs.existsSync(MESSAGES_FILE)) return [];
+  return JSON.parse(fs.readFileSync(MESSAGES_FILE));
+}
+function writeMessages(messages) {
+  fs.writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+}
+
+// ------------------- Routes -------------------
+
+// Contact form POST
+app.post('/contact', (req, res) => {
+  const { name, email, message } = req.body;
+  if (!name || !email || !message) return res.status(400).json({ message: 'All fields are required' });
+
+  const messages = readMessages();
+  messages.push({ name, email, message, seen: false, timestamp: Date.now() });
+  writeMessages(messages);
+
+  res.json({ message: 'Message received!' });
+});
+
+// GET all messages
+app.get('/messages', (req, res) => {
+  const messages = readMessages();
+  res.json(messages);
+});
+
+// PATCH mark message as seen
+app.patch('/messages/seen/:index', (req, res) => {
+  const messages = readMessages();
+  const index = Number(req.params.index);
+  if (messages[index]) {
+    messages[index].seen = true;
+    writeMessages(messages);
+    return res.json({ message: 'Marked as seen' });
+  }
+  res.status(404).json({ message: 'Message not found' });
+});
+
+// DELETE message
+app.delete('/messages/delete/:index', (req, res) => {
+  const messages = readMessages();
+  const index = Number(req.params.index);
+  if (messages[index]) {
+    messages.splice(index, 1);
+    writeMessages(messages);
+    return res.json({ message: 'Message deleted' });
+  }
+  res.status(404).json({ message: 'Message not found' });
+});
 
 // Health check
-app.get("/", (req, res) => res.send("Backend is live 🚀"));
+app.get('/', (req, res) => res.send('Backend is live 🚀'));
 
-// Store contact form messages
-app.post("/contact", async (req, res) => {
-  const { name, email, message } = req.body;
-  if (!name || !email || !message)
-    return res.status(400).json({ message: "All fields are required" });
-
-  try {
-    const messages = await fs.readJson(DATA_FILE);
-    const newMessage = {
-      id: messages.length + 1,
-      name,
-      email,
-      message,
-      created_at: new Date().toISOString()
-    };
-    messages.push(newMessage);
-    await fs.writeJson(DATA_FILE, messages, { spaces: 2 });
-    res.status(200).json({ message: "Message received!" });
-  } catch (err) {
-    console.error("❌ File write error:", err);
-    res.status(500).json({ message: "Failed to store message" });
-  }
-});
-
-// Admin page to view messages
-app.get("/admin", async (req, res) => {
-  res.sendFile(path.join(process.cwd(), "public", "admin.html"));
-});
-
-// API to fetch messages for admin
-app.get("/api/messages", async (req, res) => {
-  try {
-    const messages = await fs.readJson(DATA_FILE);
-    res.json(messages.reverse());
-  } catch (err) {
-    res.status(500).json({ message: "Failed to fetch messages" });
-  }
-});
-
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
