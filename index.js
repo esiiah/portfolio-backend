@@ -27,26 +27,19 @@ app.post('/contact', async (req, res) => {
   }
 
   try {
-    // Nodemailer transporter with Gmail App Password and timeouts
+    // Nodemailer transporter using Gmail service + App Password
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,                  // smtp.gmail.com
-      port: Number(process.env.EMAIL_PORT),          // 587 or 465
-      secure: process.env.EMAIL_PORT == 465,         // true for 465, false for 587
+      service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-      connectionTimeout: 5000,  // 5 seconds
-      greetingTimeout: 5000,    // 5 seconds
+      logger: true, // helpful for debugging
+      debug: true,  // helpful for debugging
     });
 
     // Verify SMTP connection and App Password
-    await transporter.verify()
-      .then(() => console.log("✅ App password works!"))
-      .catch((err) => {
-        console.error("❌ App password failed:", err);
-        throw new Error("App password verification failed");
-      });
+    await transporter.verify();
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
@@ -66,6 +59,6 @@ app.post('/contact', async (req, res) => {
   }
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
