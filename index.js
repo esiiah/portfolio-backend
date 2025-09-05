@@ -40,9 +40,13 @@ app.post('/contact', async (req, res) => {
       greetingTimeout: 5000,    // 5 seconds
     });
 
-    // verify SMTP connection before sending
-    await transporter.verify();
-    console.log("✅ SMTP connection verified");
+    // Verify SMTP connection and App Password
+    await transporter.verify()
+      .then(() => console.log("✅ App password works!"))
+      .catch((err) => {
+        console.error("❌ App password failed:", err);
+        throw new Error("App password verification failed");
+      });
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,
@@ -62,6 +66,6 @@ app.post('/contact', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
 });
