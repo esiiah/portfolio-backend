@@ -27,9 +27,10 @@ app.post('/contact', async (req, res) => {
   }
 
   try {
+    // Nodemailer transporter using Gmail App Password
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
+      host: process.env.EMAIL_HOST,       // smtp.gmail.com
+      port: Number(process.env.EMAIL_PORT),// 465
       secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
@@ -43,14 +44,14 @@ app.post('/contact', async (req, res) => {
     const mailOptions = {
       from: process.env.EMAIL_FROM,
       to: process.env.EMAIL_FROM, // send to yourself
-      replyTo: email, // so you can reply directly to the sender
+      replyTo: email,              // sender's email for reply
       subject: `Portfolio Contact Form: ${name}`,
       text: message,
     };
 
     const info = await transporter.sendMail(mailOptions);
 
-    console.log("✅ Email sent:", info);
+    console.log("✅ Email sent:", info.messageId);
     res.status(200).json({ message: 'Email sent successfully!' });
   } catch (error) {
     console.error("❌ Email send error:", error);
