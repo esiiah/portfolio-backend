@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// 👇 Root route just to confirm backend is alive
+// Root route for health check
 app.get('/', (req, res) => {
   res.send('Backend is live 🚀');
 });
@@ -30,26 +30,31 @@ app.post('/contact', async (req, res) => {
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: process.env.EMAIL_PORT,
-      secure: false, // true for port 465, false for 587
+      secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
+    // verify SMTP connection before sending
+    await transporter.verify();
+
     const mailOptions = {
       from: process.env.EMAIL_FROM,
-      to: process.env.EMAIL_FROM, // your email to receive messages
-      replyTo: email, // sender’s email
+      to: process.env.EMAIL_FROM, // send to yourself
+      replyTo: email, // so you can reply directly to the sender
       subject: `Portfolio Contact Form: ${name}`,
       text: message,
     };
 
-    await transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log("✅ Email sent:", info);
     res.status(200).json({ message: 'Email sent successfully!' });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Something went wrong' });
+    console.error("❌ Email send error:", error);
+    res.status(500).json({ message: error.message || 'Something went wrong' });
   }
 });
 
