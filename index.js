@@ -1,18 +1,17 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import fs from "fs-extra";
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Path to JSON file
 const DATA_FILE = "./messages.json";
 
-// Ensure messages.json exists
-fs.ensureFileSync(DATA_FILE);
-fs.writeJsonSync(DATA_FILE, [], { spaces: 2, flag: "wx" }, err => {});
+// Only create the file if it does NOT exist
+fs.pathExists(DATA_FILE).then(exists => {
+  if (!exists) {
+    fs.writeJson(DATA_FILE, [], { spaces: 2 });
+  }
+});
 
 // Middleware
 app.use(cors());
@@ -39,7 +38,6 @@ app.post("/contact", async (req, res) => {
     };
     messages.push(newMessage);
     await fs.writeJson(DATA_FILE, messages, { spaces: 2 });
-    console.log("✅ Message stored:", newMessage.id);
     res.status(200).json({ message: "Message received!" });
   } catch (err) {
     console.error("❌ File write error:", err);
